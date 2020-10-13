@@ -95,6 +95,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <StackReserveSize>10485760</StackReserveSize>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -131,6 +132,7 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <StackReserveSize>10485760</StackReserveSize>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -153,6 +155,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Config.cpp" />
     <ClCompile Include="helper.cpp" />
     <ClCompile Include="http_conn.cpp" />
     <ClCompile Include="main.cpp" />
@@ -160,7 +163,8 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="auth.h" />
-    <ClInclude Include="config.h" />
+    <ClInclude Include="base64.h" />
+    <ClInclude Include="Config.h" />
     <ClInclude Include="Controller.h" />
     <ClInclude Include="helper.h" />
     <ClInclude Include="http\http_conn.h" />

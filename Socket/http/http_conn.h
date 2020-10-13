@@ -6,13 +6,12 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <set>
 #include <winsock2.h>  
 #pragma comment(lib,"ws2_32.lib")  
 
 #include "../config.h"
 //#include "../logger.h"
-
-
 
 using namespace std;
 
@@ -30,17 +29,30 @@ const string head = "HTTP / 1.1 200 OK\r\n"
 "Server: hsoap/2.8\r\n"
 "Content-Type: text/html\r\n"
 "Content-Length: %d\r\n"
-"Connection: close\r\n\r\n";
+"Connection: keep-alive\r\n\r\n";
+
+const string mediaHead = "HTTP / 1.1 200 OK\r\n"
+"accept-ranges: bytes\r\n"
+"Server: hsoap/2.8\r\n"
+"Content-Type: image/jpg \r\n"
+"Content-Length: %d\r\n\r\n";
 
 class Http {
 private:
 	SOCKET slisten;
 	sockaddr_in sin;
-	SOCKET sClient;
 	sockaddr_in remoteAddr;
-	int BUFFER_SIZE;
-	int nAddrlen;
+	SOCKET sClient;
+
+	string username;
+	string password;
+	string rootDir;
+	string errorPage;
+	bool authorized;
+
 	map<string, string> controllers;
+	vector<string> filters;
+
 	enum HttpMethods
 	{
 		_GET,
@@ -59,13 +71,17 @@ public:
 
 	// 添加映射
 	void requestMapping(string url, string resource);
-	void getMappings(string filename);
-
 	// 解析请求
 	void parseRequest(char *head, HttpMethods &method, string &url);
 
-	void sendHtml();
-	void sendMedia();
+	void redirect(string &url);
+	void redirect(const char *url);
+	void sendHtml(string filename);
+	void sendMedia(string filename);
+	void handleGet(char *revData,string &url);
+	void handleDelete(char *revData, string &url);
+	void handlePost(char *revData, string &url);
+	bool authorize(char *revData);
 
 	~Http(){}
 };
