@@ -2,7 +2,7 @@
 #include "http/http_conn.h"
 #include "helper.h"
 #include <Windows.h>
-#include <thread>
+//#include <thread>
 //#include "logger.h"
 
 using namespace std;
@@ -64,9 +64,7 @@ bool Http::init() {
 	}
 }
 
-void captureInput() {
-	std::cin >> flag;
-}
+
 
 void Http::loop() {
 	string url;
@@ -76,11 +74,9 @@ void Http::loop() {
 	sockaddr_in remoteAddr;
 	HttpMethods method;
 
-	thread *capture_close_signal;
-	capture_close_signal = new thread(&captureInput);
+
 
 	while (true) {
-		cout << flag << endl;
 		setColor(WHITE);
 		cout << endl<< "waiting for connection...\n";
 		sClient = accept(this->slisten, (SOCKADDR *)&remoteAddr, &nAddrlen);

@@ -37,7 +37,7 @@ const string mediaHead = "HTTP / 1.1 200 OK\r\n"
 "Content-Type: image/jpg \r\n"
 "Content-Length: %d\r\n\r\n";
 
-char flag;
+//char flag;
 
 class Http {
 private:
