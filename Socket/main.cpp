@@ -4,6 +4,7 @@
 #include "helper.h"
 #include "tester/test_string.hpp"
 #include <direct.h>
+#include <process.h>
 
 using namespace std;
 
@@ -11,7 +12,6 @@ using namespace std;
 
 int main(){
 	Config config("web.conf");
-	//initConf(config);
 	Http http(config);
 	bool res=http.init();
 	if (res) {

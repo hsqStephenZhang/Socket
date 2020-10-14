@@ -37,6 +37,8 @@ const string mediaHead = "HTTP / 1.1 200 OK\r\n"
 "Content-Type: image/jpg \r\n"
 "Content-Length: %d\r\n\r\n";
 
+char flag;
+
 class Http {
 private:
 	SOCKET slisten;
@@ -72,16 +74,19 @@ public:
 	// 添加映射
 	void requestMapping(string url, string resource);
 	// 解析请求
-	void parseRequest(char *head, HttpMethods &method, string &url);
 
 	void redirect(string &url);
 	void redirect(const char *url);
 	void sendHtml(string filename);
 	void sendMedia(string filename);
+	void sendResponse(char *revData,string & url);
+	void parseRequest(char *head, HttpMethods &method, string &url, std::map<string, string> &args);
+	void handleRequest(char *revData,HttpMethods &method,string &url, std::map<string, string> &args);
 	void handleGet(char *revData,string &url);
 	void handleDelete(char *revData, string &url);
-	void handlePost(char *revData, string &url);
-	bool authorize(char *revData);
+	void handlePost(char *revData, string &url, std::map<string, string> &args);
+	bool authorize(std::map<string, string> &args);
 
 	~Http(){}
 };
+

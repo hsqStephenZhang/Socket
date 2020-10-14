@@ -2,6 +2,7 @@
 #include "http/http_conn.h"
 #include "helper.h"
 #include <Windows.h>
+#include <thread>
 //#include "logger.h"
 
 using namespace std;
@@ -63,6 +64,10 @@ bool Http::init() {
 	}
 }
 
+void captureInput() {
+	std::cin >> flag;
+}
+
 void Http::loop() {
 	string url;
 	char revData[MAX_SIZE];
@@ -71,9 +76,13 @@ void Http::loop() {
 	sockaddr_in remoteAddr;
 	HttpMethods method;
 
+	thread *capture_close_signal;
+	capture_close_signal = new thread(&captureInput);
+
 	while (true) {
-		setColor(RED);
-		printf("waiting for connection...\n");
+		cout << flag << endl;
+		setColor(WHITE);
+		cout << endl<< "waiting for connection...\n";
 		sClient = accept(this->slisten, (SOCKADDR *)&remoteAddr, &nAddrlen);
 		if (sClient == INVALID_SOCKET)
 		{
@@ -82,23 +91,18 @@ void Http::loop() {
 			continue;
 		}
 		else {
+			// 输出建立的连接的信息
 			setColor(WHITE);
-			printf("connection build：%s \r\n", inet_ntoa(remoteAddr.sin_addr));
-
+			printf("connection build, address: %s,  port: %d", inet_ntoa(remoteAddr.sin_addr), remoteAddr.sin_port);
 			int ret = recv(sClient, revData, MAX_SIZE, 0);
+			coutHead(revData);
 
 			// 解析输入的网址
-			parseRequest(revData, method, url);
+			map<string, string> args;
+			// 找到对应的处理的方法，接收对应的参数
+			parseRequest(revData, method, url,args);
 			// 对应不同的method，有不同的处理方法
-			if (method == HttpMethods::_GET) {
-				handleGet(revData, url);
-			}
-			else if (method == HttpMethods::_DELETE) {
-				handleDelete(revData, url);
-			}
-			else if (method == HttpMethods::_POST) {
-				handlePost (revData, url);
-			}
+			handleRequest(revData,method,url,args);
 		}
 		closesocket(sClient);
 	}
@@ -114,7 +118,7 @@ void Http::requestMapping(string url, string resource) {
 	}
 }
 
-void Http::parseRequest(char *head, HttpMethods &method, string &url) {
+void Http::parseRequest(char *head, HttpMethods &method, string &url, std::map<string, string> &args) {
 	string type;
 	int i = 0;
 	char currentChar;
@@ -122,14 +126,15 @@ void Http::parseRequest(char *head, HttpMethods &method, string &url) {
 		type.push_back(currentChar);
 		i++;
 	}
+	i++;
 	if (type.compare("GET") == 0) method = HttpMethods::_GET;
 	else if (type.compare("POST") == 0) method = HttpMethods::_POST;
 	else if (type.compare("PUT") == 0) method = HttpMethods::_PUT;
 	else if (type.compare("HEAD") == 0) method = HttpMethods::_HEAD;
 	else if (type.compare("DELETE") == 0) method = HttpMethods::_DELETE;
-	cout << type << endl;
-
-	i++;
+	
+	
+	// 获取请求的方式和请求的url
 	url.clear();
 	while ((currentChar = *(head + i)) != ' ') {
 		url.push_back(currentChar);
@@ -138,38 +143,83 @@ void Http::parseRequest(char *head, HttpMethods &method, string &url) {
 	if (strcmp(url.c_str(), "  ") == 0) {
 		url.clear();
 	}
-	cout << url << endl;
+	setColor(YELLOW);
+	cout <<"[request type:"<< type<<" request url:"<<url <<" ]"<< endl;
+
+	// 处理post,delete请求对应的参数
+	if (method == HttpMethods::_POST || method == HttpMethods::_DELETE)
+	{
+		char *pos = strstr(head, "Content-Length:");
+		pos += 16;
+		int length = 0;
+		i = 0;
+		char c;
+		while ((c = pos[i]) != '\r' && c != '\n') {
+			length = length * 10;
+			length += c - '0';
+			i++;
+		}
+		// post请求附带的正文的内容从content开始
+		char *content = strstr(head, "\r\n\r\n");
+		content += 4;
+		parseArgs(content, args);
+		authorize(args);
+	}
+}
+
+void Http::handleRequest(char *revData,HttpMethods &method, string &url, std::map<string, string> &args) {
+	if (method == HttpMethods::_GET) {
+		handleGet(revData, url);
+	}
+	else if (method == HttpMethods::_DELETE) {
+		handleDelete(revData, url);
+	}
+	else if (method == HttpMethods::_POST) {
+		handlePost(revData, url, args);
+	}
 }
 
 void Http::handleGet(char *revData, string &url) {
+	map<string, string>args;
+	int pos;
+	if ((pos= url.find('?')) != url.npos) {
+		parseArgs(url.c_str()+pos+1,args);
+		url = string(url.begin(), url.begin() + pos);
+	}
+
 	auto res = this->controllers.find(url);
+	// 找到了对应的静态资源
 	if (res != this->controllers.end()) {
 		setColor(YELLOW);
 		cout << "[find " + url + " success]" << endl;
-		if (strstr(revData, "GET")) {
-			if (strstr(revData, "text/html"))
-			{
-				cout << "now send a html" << endl;
-				cout << this->controllers[url] << endl;
-				sendHtml(rootDir + replace_all(this->controllers[url], "/", "\\"));
-			}
-			else if (strstr(revData, "Sec-Fetch-Dest: image")) {
-				cout << "now send a jpg" << endl;
-				sendMedia(rootDir + replace_all(this->controllers[url], "/", "\\"));
-			}
-		}
+		sendResponse(revData,url);
 	}
 	else {
-
 		// 过滤请求
 		for (auto iter = this->filters.begin(); iter != this->filters.end(); iter++) {
-			if (url == *iter) return;
+			if (url == *iter) {
+				setColor(GREEN);
+				cout << "[filter rosource:  " << url << " ]" << endl;
+				return;
+			}
 		}
 
 		setColor(RED);
-		cout << "[fail to locate resource]" << endl;
+		cout << "[fail to locate resource]" << url << endl;
 		cout << "[now send 404 not found error]" << endl;
 		redirect(this->errorPage);
+	}
+}
+
+void Http::sendResponse(char *revData, string & url) {
+	if (strstr(revData, "text/html"))
+	{
+		cout << "now send a html: " << this->controllers[url] << endl;
+		sendHtml(rootDir + replace_all(this->controllers[url], "/", "\\"));
+	}
+	else if (strstr(revData, "Sec-Fetch-Dest: image")) {
+		cout << "now send a image: " << this->controllers[url] << endl;
+		sendMedia(rootDir + replace_all(this->controllers[url], "/", "\\"));
 	}
 }
 
@@ -178,73 +228,40 @@ void Http::handleDelete(char *revData, string &url) {
 	redirect("/index.html");
 }
 
-void Http::handlePost(char *revData, string &url) {
-	bool res = authorize(revData);
-	if (res) cout << "*********************" << endl;
+void Http::handlePost(char *revData, string &url,map<string, string> &args) {
+	bool res = authorize(args);
+	if (res) {
+		setColor(RED);
+		cout << endl << "*******************authorized***************" << endl << endl;
+	}
 	redirect("/index.html");
 }
 
-bool Http::authorize(char *revData) {
-	setColor(RED);
-	char line[256];
-	char *username = strstr(revData, "username");
-	if (username != nullptr) {
-		char *password = strstr(username, "password");
-		if (password != nullptr) {
-			string usernm;
-			string passwd;
-			username += 9;
-			int i = 0;
-			char c;
-			while ((c = *(username + i)) != '&') {
-				usernm.push_back(c);
-				i++;
-			}
-
-			// username 匹配成功
-			if (usernm == this->username) {
-				i = 0;
-				password += 9;
-				// 开始匹配password
-				while ((c = *(password + i))) {
-					passwd.push_back(c);
-					if ((i < this->password.size() ) && (c == this->password[i])) {
-						i++;
-					}
-					else {
-						break;
-					}
-				}
-				if (i == this->password.size()) {
-					setColor(YELLOW);
-					cout << "username:" + usernm << endl;
-					cout << "password:" + passwd << endl;
-					this->authorized = true;
-					return true;
-				}
-				else {
-					setColor(RED);
-					cout << "authorize failed" << endl;
-				}
-			}
-		}
+bool Http::authorize(std::map<string, string> &args) {
+	bool res=false;
+	auto iter1 = args.find("username");
+	auto iter2= args.find("password");
+	if (iter1!=args.end() && iter2 != args.end()) {
+		res = iter1->second == this->username && iter2->second == this->password;
 	}
+	if (res) this->authorized = true;
+	return res;
 }
 
+// 重定向，这里给出的url，不需要在controllers里面查找
 void Http::redirect(const char *url) {
 	string u = url;
 	redirect(u);
 }
 
 void Http::redirect(string &url) {
-	sendHtml(rootDir + replace_all(this->controllers[url], "/", "\\"));
+	sendHtml(rootDir + replace_all(url, "/", "\\"));
 }
 
 void Http::sendHtml(string filename) {
 	char content[1024 * 64] = { 0 };
 
 	FILE*fp;
-	cout << filename << endl;
 	fp = fopen(filename.c_str(), "rb");
 	fseek(fp, 0, SEEK_END);
 	long lSize = ftell(fp);
@@ -253,10 +270,10 @@ void Http::sendHtml(string filename) {
 	fread(buf, 1, lSize, fp);
 
 	int size = sprintf(content, head.c_str(), lSize);
-	cout << content << endl;
+	//cout << content << endl;
 	strcat(content + size, buf);
 	content[size + lSize] = '\0';
-	cout << content << endl;
+	//cout << content << endl;
 
 	send(sClient, content, size + lSize + 1, 0);
 	delete buf;
@@ -266,8 +283,6 @@ void Http::sendMedia(string filename) {
 	char content[1024 * 1024] = { 0 };
 
 	FILE*fp;
-	//fp = fopen(filename.c_str(), "rb");
-	cout << filename << endl;
 	fp = fopen(filename.c_str(), "rb");
 	fseek(fp, 0, SEEK_END);
 	long lSize = ftell(fp);
@@ -276,10 +291,10 @@ void Http::sendMedia(string filename) {
 	fread(buf, 1, lSize, fp);
 
 	int size = sprintf(content, mediaHead.c_str(), lSize);
-	cout << content << endl;
+	//cout << content << endl;
 	memcpy(content + size, buf, lSize);
 	content[lSize + size] = '\0';
-	cout << content << endl;
+	//cout << content << endl;
 	send(sClient, content, size + lSize + 1, 0);
 	delete buf;
 }

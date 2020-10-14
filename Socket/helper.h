@@ -7,6 +7,7 @@
 #include <vector>
 #include <string>
 #include "Config.h"
+#include <Windows.h>
 
 using std::string;
 using std::vector;
@@ -34,3 +35,7 @@ bool matchPattern(vector<string>&patterns, string filepath);
 void GetAllFiles(string path, vector<string>&patterns, vector<string>& files);
 
 void setColor(Colors color);
+
+void coutHead(char *revData);
+
+void parseArgs(const char *args, std::map<string, string> &res);

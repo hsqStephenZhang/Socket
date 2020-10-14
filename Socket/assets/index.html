@@ -8,15 +8,18 @@
   <body>
     <h1>post test</h1>
     <form method="post" action="index.html">
-      <label for="username"><input id="username" type="text" name="username"/>
-        <label for="password"><input id="password" type="text" name="password"/>
+      <label for="username">username</label><input id="username" type="text" name="username"/>
+        <label for="password">password</label><input id="password" type="text" name="password"/>
         <input type="submit" value="submit" />
     </form>
     <br>
     <h1>delete test</h1>
-    <form method="delete" action="index.html">
-      <label for="filename"></label><input id="filename" type="text" />
-      <input type="submit" value="submit" />
+    <form action="hello.html" method="delete">
+      <div>
+        <label for="filename1">filename1</input><input id="filename1" name="filename1" type="text">
+          <label for="filename2">filename2</input><input id="filename2" name="filename2" type="text">
+            <input type="submit" value="提交">
+      </div>
     </form>
     <h2>image test</h2>
     <img src="imgs/bigdata.jpg" style="height: 100px; width: 100px">

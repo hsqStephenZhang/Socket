@@ -2,7 +2,6 @@
 
 #include "helper.h"
 #include "Config.h"
-#include <Windows.h>
 
 bool initConf(Config &config) {
 	int port;
@@ -155,4 +154,40 @@ void setColor(Colors color) {
 		break;
 	}
 	}
+}
+
+void coutHead(char *revData) {
+	char *s = strstr(revData, "\r\n\r\n");
+	char *c = revData;
+	setColor(RED);
+	cout << "[content of header]" << endl;
+	while (c != s) {
+		cout << *c;
+		c++;
+	}
+	cout << endl << endl;
+}
+
+void parseArgs(const char *args, std::map<string,string> &res) {
+	string key;
+	string value;
+	int i = 0;
+	char c;
+	int length = strlen(args);
+	while (i < length) {
+		key.clear();
+		value.clear();
+		while ((c = *(args + i)) != '=') {
+			key.push_back(c);
+			i++;
+		}
+		i++;
+		while (i < length && (c = *(args + i)) != '&') {
+			value.push_back(c);
+			i++;
+		}
+		i++;
+		res[key] = value;
+	}
+
 }
