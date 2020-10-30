@@ -2,8 +2,7 @@
 #include "http/http_conn.h"
 #include "helper.h"
 #include <Windows.h>
-//#include <thread>
-//#include "logger.h"
+#include <conio.h>
 
 using namespace std;
 
@@ -64,21 +63,20 @@ bool Http::init() {
 	}
 }
 
-
-
 void Http::loop() {
 	string url;
-	char revData[MAX_SIZE];
+	char revData[MAX_SIZE]={0};
 	int nAddrlen = sizeof(remoteAddr);
 	
 	sockaddr_in remoteAddr;
 	HttpMethods method;
 
-
+	int keyboard;
 
 	while (true) {
 		setColor(WHITE);
 		cout << endl<< "waiting for connection...\n";
+
 		sClient = accept(this->slisten, (SOCKADDR *)&remoteAddr, &nAddrlen);
 		if (sClient == INVALID_SOCKET)
 		{
